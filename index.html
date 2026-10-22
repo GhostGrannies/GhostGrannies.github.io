@@ -80,7 +80,7 @@ function reveal(who){
   const q=$('question').value.trim();
   if(!q){$('hint').textContent="The Oracle can't read minds… well, not yours. Type a question!";return;}
   $('hint').textContent='';
-  if(RISK.test(q)){showSupport();return;}
+  const rk=riskKind(q);if(rk){showSupport(rk);return;}
   $('qShow').textContent='“'+q+'”';
   const f=$('front'),rd=$('reading');
   if(who==='R'){
@@ -101,7 +101,26 @@ function reveal(who){
 $('btnR').onclick=()=>reveal('R');$('btnA').onclick=()=>reveal('A');
 $('again').onclick=()=>{$('result').classList.add('hidden');$('ask').classList.remove('hidden');$('question').value='';$('card').classList.remove('flip');$('reading').classList.remove('show');$('question').focus();};
 
-const RISK=/(kill(ing)? ?my ?self|killmyself|suicid|end (it|my life|things)( all)?|end it all|want(ed)? to die|wanna die|wish i (was|were) dead|better off dead|don'?t want to (live|be here|exist)|no reason to live|nothing to live for|take my (own )?life|self[- ]?harm|cut(ting)? myself|hurt(ing)? myself|harm(ing)? myself|overdos|hang myself|jump off|can'?t go on|kill (him|her|them|someone|somebody|my|you)|murder|hurt (him|her|them|someone|somebody|people)|harm (him|her|them|someone|somebody|people)|shoot (him|her|them|someone|up)|stab (him|her|them|someone))/i;
+function normRisk(t){t=(t||'').toLowerCase().replace(/[’'`]/g,'').replace(/[1!|]/g,'i').replace(/3/g,'e').replace(/0/g,'o').replace(/4/g,'a').replace(/[@]/g,'a').replace(/\$/g,'s').replace(/[^a-z\s]/g,' ').replace(/\s+/g,' ').trim();
+ return t.split(' ').map(w=>/^k+i*l+(s|ed|ing|er|ers)?$/.test(w)&&w!=='kl'?w.replace(/^k+i*l+/,'kill'):/^m[ue]rd(er|a|ah|ar)/.test(w)?w.replace(/^m[ue]rd(er|a|ah|ar)/,'murder'):w).join(' ');}
+const R_VERB=/^(kill|murder|stab|shoot|shot|strangl|chok|hurt|harm|beat|bash|punch|hit|smash|poison|slit|hang|hung|end|destroy|belt|smack|bury|slap|knife|drown|burn|torture|maim|attack|assault|rape|thump|snap|throttl|suffocat|smother|batter|whack|deck|glass|slaughter|butcher|massacre|execut|eliminat|annihilat|wreck|fuck)/;
+const R_MULTI=/\b(run (him|her|them|over)|get rid of|make (him|her|them|that|the|my|this) ?\w* ?pay|knock (him|her|them|out)|take (him|her|them) out|do (him|her|them) in|put (him|her|them) in (the )?(ground|hospital)|ran over)\b/;
+const R_PERSON=/^(him|her|them|you|ya|u|myself|me|himself|herself|themselves|yourself|he|she|they|wife|wifey|husband|hubby|partner|boyfriend|bf|girlfriend|gf|ex|exs|exwife|exhusband|mum|mom|mother|mam|ma|dad|father|pa|son|daughter|kid|kids|child|children|baby|babies|boss|brother|bro|sister|sis|neighbour|neighbor|neighbours|neighbors|friend|friends|mate|family|people|everyone|everybody|someone|somebody|anybody|anyone|bitch|bitches|bastard|cunt|prick|dickhead|arsehole|asshole|slut|whore|idiot|cow|mongrel|mole|wanker|fucker|motherfucker|teacher|coworker|colleague|man|woman|guy|girl|bloke|wifes|mil|inlaws|stepdad|stepmum|stepmom|grandma|nan|pop|uncle|aunt|cousin|husbands)s?$/;
+const R_SELF=/\b(suicid\w*|kill ?(my ?self|me)|killmyself|end (it all|my life|it|things|everything)|want(ed)? to die|wanna die|going to die tonight|ready to die|wish i (was|were|could be) dead|wish id die|better off (dead|without me)|dont want to (live|be here|exist|wake up)|no (reason|point) (to|in) (live|living|going on)|nothing to live for|take my (own )?life|self ?harm\w*|cut(ting)? (my ?self|my (wrists?|arms?|legs?))|hurt(ing)? my ?self|harm(ing)? my ?self|overdos\w*|od on|hang(ing)? my ?self|jump(ing)? off (a|the) (bridge|building|cliff|roof)|cant go on|cant do this anymore|give up on life|disappear forever|not be here anymore|end my own)\b/;
+const R_HARM=/\b(want (him|her|them|you|it) dead|wish (he|she|they|you|my \w+|that \w+|the \w+) (was|were|would|is) (dead|die)|hope (he|she|they|you|my \w+) (dies|die|died|drops dead|gets hit)|(he|she|they|you) (should|deserves? to|needs to|ought to) die|bomb\w*|gun\w*|shoot ?up|shooting up|rifle|knife (him|her|them)|weapon)\b/;
+const R_DV=/\b((he|she|they|my \w+) (hits|hit|beats|beat|hurts|hurt|chokes|choked|kicks|punches|slaps|pushes|threatens|threatened|rapes|raped|abuses|abused|controls) (me|my)|(scared|afraid|frightened|terrified) of (my|him|her|them)|hurt(ing)? my (kids?|children|baby|son|daughter)|domestic (violence|abuse)|abusive (husband|wife|partner|relationship|boyfriend|girlfriend)|wont let me leave|not safe at home)\b/;
+function riskKind(q){const t=normRisk(q);if(!t)return null;
+ if(R_SELF.test(t))return'self';
+ if(R_HARM.test(t)||R_DV.test(t)||R_MULTI.test(t))return'harm';
+ const w=t.split(' ');for(let i=0;i<w.length;i++){if(R_VERB.test(w[i])){for(let j=i+1;j<=i+6&&j<w.length;j++){if(R_PERSON.test(w[j]))return(/^(me|myself)$/.test(w[j])&&!/^(he|she|they)$/.test(w[i-1]||''))?'self':'harm';}}}
+ return null;}
+const RISK={test:q=>!!riskKind(q)};
+
+const HARMHELP={
+ AU:[['1800RESPECT (family & domestic violence)','1800 737 732','tel:1800737732','https://www.1800respect.org.au','1800respect.org.au'],["Men's Referral Service (No to Violence)",'1300 766 491','tel:1300766491','https://ntv.org.au','ntv.org.au'],['MensLine Australia','1300 78 99 78','tel:1300789978','https://mensline.org.au','mensline.org.au']],
+ NZ:[['Are You OK (family violence)','0800 456 450','tel:0800456450','https://areyouok.org.nz','areyouok.org.nz']],
+ UK:[['National Domestic Abuse Helpline','0808 2000 247','tel:08082000247','https://www.nationaldahelpline.org.uk','nationaldahelpline.org.uk'],['Respect Phoneline (if you are worried about your own behaviour)','0808 802 4040','tel:08088024040','https://respectphoneline.org.uk','respectphoneline.org.uk']],
+ US:[['National Domestic Violence Hotline','1-800-799-7233','tel:18007997233','https://www.thehotline.org','thehotline.org']],OT:[]};
 const HELP={
  AU:{n:'Australia',l:[['Lifeline','13 11 14','tel:131114','https://www.lifeline.org.au','lifeline.org.au'],['Beyond Blue','1300 22 4636','tel:1300224636','https://www.beyondblue.org.au','beyondblue.org.au'],['Emergency','000','tel:000']]},
  NZ:{n:'New Zealand',l:[['Need to talk? Call or text','1737','tel:1737'],['Lifeline','0800 543 354','tel:0800543354'],['Emergency','111','tel:111']]},
@@ -111,9 +130,10 @@ const HELP={
 function region(){let tz='',lang=(navigator.language||'').toUpperCase();try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}
  if(/^Australia\//.test(tz)||lang.endsWith('-AU'))return'AU';if(/^Pacific\/(Auckland|Chatham)/.test(tz)||lang.endsWith('-NZ'))return'NZ';
  if(/^Europe\/(London|Dublin|Belfast)/.test(tz)||/-(GB|IE)$/.test(lang))return'UK';if(/^America\//.test(tz)||/-(US|CA)$/.test(lang))return'US';return'OT';}
-function regHTML(k,primary){const r=HELP[k];return `<div class="reg ${primary?'primary':''}"><b>${r.n}</b><br>`+r.l.map(x=>`${x[0]}${x[1]?`: <a href="${x[2]}">${x[1]}</a>`:''}${x[3]?` · <a href="${x[3]}" target="_blank" rel="noopener">${x[4]}</a>`:''}`).join('<br>')+'</div>';}
-function showSupport(){const k=region();
- $('supportBox').innerHTML=`<h3>💜 You're not alone</h3><p>It sounds like you might be going through something really hard. You don't have to face it alone. Please reach out now:</p>${regHTML(k,true)}${Object.keys(HELP).filter(x=>x!==k).map(x=>regHTML(x)).join('')}<p><b>If you're in immediate danger, call your local emergency number.</b></p>`;
+function regHTML(k,primary,harm){const r=HELP[k];const l=harm?[...HARMHELP[k],...r.l]:r.l;return `<div class="reg ${primary?'primary':''}"><b>${r.n}</b><br>`+l.map(x=>`${x[0]}${x[1]?`: <a href="${x[2]}">${x[1]}</a>`:''}${x[3]?` · <a href="${x[3]}" target="_blank" rel="noopener">${x[4]}</a>`:''}`).join('<br>')+'</div>';}
+function showSupport(kind){const k=region();if(kind===undefined)kind=riskKind($('question').value);const harm=kind==='harm';
+ const intro=harm?`<h3>💜 Let's pause for a moment</h3><p>It sounds like you might be feeling a lot of anger, or like you're at breaking point, or that someone may not be safe right now. Those feelings can be overwhelming, and you don't have to deal with them alone. Please talk to someone now:</p>`:`<h3>💜 You're not alone</h3><p>It sounds like you might be going through something really hard. You don't have to face it alone. Please reach out now:</p>`;
+ $('supportBox').innerHTML=intro+regHTML(k,true,harm)+Object.keys(HELP).filter(x=>x!==k).map(x=>regHTML(x,false,harm)).join('')+`<p><b>If you or anyone else is in immediate danger, call your local emergency number.</b></p>`;
  $('ask').classList.add('hidden');$('result').classList.add('hidden');$('support').classList.remove('hidden');window.scrollTo(0,0);}
 $('crisisLink').onclick=e=>{e.preventDefault();showSupport();};
 $('back2').onclick=()=>{$('support').classList.add('hidden');$('ask').classList.remove('hidden');};
